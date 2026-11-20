@@ -1,0 +1,42 @@
+:root { color-scheme: light; --paper:#fffdf9; --ink:#213d35; --line:#e7e4da; }
+* { box-sizing: border-box; }
+html,body { margin:0; height:100%; overflow:hidden; background:var(--paper); }
+body { display:flex; flex-direction:column; font-family:system-ui,sans-serif; }
+#editor { flex:1; min-height:0; overflow:hidden; }
+.toastui-editor-defaultUI { border:0; border-radius:0; height:100% !important; }
+#editor:not(.formatting-visible) .toastui-editor-defaultUI-toolbar { display:none; }
+#editor:not(.formatting-visible) .toastui-editor-main { height:100%; }
+.toastui-editor-defaultUI-toolbar { background:#f7f5ef; border-bottom:1px solid var(--line); border-radius:0; padding:0 7px; }
+.toastui-editor-toolbar-divider { background:var(--line); }
+.toastui-editor-main { background:var(--paper); }
+.toastui-editor-ww-container { background:var(--paper); }
+.toastui-editor-contents, .toastui-editor-ww-container .toastui-editor-contents { font-family:system-ui,-apple-system,"Noto Sans CJK SC",sans-serif; font-size:17px; line-height:1.9; color:#28342e; }
+.toastui-editor-ww-container .toastui-editor-contents { max-width:860px; margin:0 auto; padding:24px 22px 80px; }
+.toastui-editor-contents h1 { font-size:30px; color:#173b32; border-bottom:0; padding-bottom:8px; }
+.toastui-editor-contents h2 { font-size:24px; color:#244a3e; border-bottom:1px solid var(--line); }
+.toastui-editor-contents h3 { color:#244a3e; }
+.toastui-editor-contents p { line-height:1.9; }
+.toastui-editor-contents blockquote { color:#5e6d61; border-left:3px solid #9bad94; background:#f5f5ed; padding:6px 16px; margin-left:0; }
+.toastui-editor-contents img { max-width:100%; height:auto; border-radius:7px; }
+.toastui-editor-contents pre { border-radius:7px; background:#f1f1eb; }
+.toastui-editor-contents a { color:#276b53; }
+.toastui-editor-md-container { background:#fffdf9; }
+#editor .toastui-editor-tabs { display:none; }
+#editor.mode-source .toastui-editor-md-preview,
+#editor.mode-source .toastui-editor-md-splitter { display:none; }
+#editor.mode-source .toastui-editor-md-container .toastui-editor { width:100%; }
+#editor.mode-split .toastui-editor-md-container .toastui-editor,
+#editor.mode-split .toastui-editor-md-preview { display:block; width:50%; }
+#editor.mode-split .toastui-editor-md-preview { border-left:1px solid var(--line); }
+.toastui-editor-md-container .ProseMirror { font-family:ui-monospace,monospace; font-size:15px; line-height:1.7; }
+.toastui-editor-md-container .toastui-editor-md-preview { background:#fffdf9; }
+.toastui-editor-md-container .CodeMirror { font-family:ui-monospace,monospace; font-size:15px; line-height:1.7; }
+footer { flex-shrink:0; display:flex; justify-content:space-between; align-items:center; gap:8px; padding:7px 14px; border-top:1px solid var(--line); color:#758071; font-size:12px; background:#f7f5ef; }
+.mode-switch { display:flex; gap:3px; padding:3px; background:#ecefe6; border-radius:9px; }
+.mode-switch button { border:0; padding:6px 14px; border-radius:7px; color:#687464; background:transparent; font-size:12px; }
+.mode-switch button.selected { background:#fffdf9; color:#1e4c3d; box-shadow:0 1px 3px #0000000d; }
+@media(max-width:480px) {
+  .toastui-editor-ww-container .toastui-editor-contents { padding:18px 16px 60px; }
+  .toastui-editor-contents,.toastui-editor-ww-container .toastui-editor-contents { font-size:16px; }
+  .toastui-editor-defaultUI-toolbar { padding:0 3px; }
+}

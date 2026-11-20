@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="inkstone_icon_background">#143C34</color>
+    <color name="inkstone_icon_paper">#F5EFDF</color>
+    <color name="inkstone_icon_sage">#B8C9B1</color>
+    <color name="inkstone_icon_fold">#A3BAA1</color>
+</resources>

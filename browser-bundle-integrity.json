@@ -1,0 +1,7 @@
+{
+  "package": "@toast-ui/editor",
+  "version": "3.2.2",
+  "url": "https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js",
+  "sha256": "f50e1b7c0fc4e5d9a1ccd0d8be78cb3a950ccb3bf676fbf1627810c76aeaedd8",
+  "note": "Official standalone browser bundle includes ProseMirror; npm UMD alone does not."
+}

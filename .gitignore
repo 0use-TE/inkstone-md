@@ -1,0 +1,29 @@
+# Android / Gradle build output
+build/
+app/build/
+.gradle/
+.kotlin/
+*.apk
+*.aab
+
+# Local machine configuration (SDK path differs per machine)
+local.properties
+
+# Build and verification logs from local runs
+*.log
+dev-runs/
+
+# Node dependencies for the DOM smoke tests
+tests/runtime/node_modules/
+
+# Extracted upstream library source, used only for local API checks
+tests/reference/
+
+# Python
+__pycache__/
+*.pyc
+
+# Editors / OS
+.DS_Store
+*.swp
+.idea/

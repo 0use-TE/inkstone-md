@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>墨页 Markdown</title>
+  <link rel="stylesheet" href="vendor/toastui-editor.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="editor" aria-label="Markdown 文档编辑器"></div>
+  <footer>
+    <div class="mode-switch" aria-label="编辑模式">
+      <button id="rich-mode" class="selected" type="button">书写</button>
+      <button id="source-mode" type="button">源码</button>
+      <button id="split-mode" type="button">分栏</button>
+    </div>
+    <span id="count" aria-live="polite">0 字符</span>
+  </footer>
+  <script src="vendor/purify.min.js"></script>
+  <script src="vendor/toastui-editor-all.min.js"></script>
+  <script src="vendor/zh-cn.js"></script>
+  <script src="markdown-utils.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

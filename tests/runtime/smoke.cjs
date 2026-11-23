@@ -65,24 +65,24 @@ const dom = new JSDOM(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), {
     assert.equal(w.DOMPurify.version, '3.3.0');
     w.inkstone.loadDocument('# 标题\n\n这是 **真实编辑器** 测试。\n', 'first');
 
-    // Three modes: rich writing, source only, and source with a live preview.
+    // Writing and source share raw Markdown. Split/preview are source layouts.
     assert.equal(w.inkstone.getMode(), 'wysiwyg');
     assert.equal(w.inkstone.setMode('source'), true);
     assert.equal(w.inkstone.getMode(), 'source');
     assert.equal(w.inkstone.setMode('split'), true);
-    assert.equal(w.inkstone.getMode(), 'split');
+    assert.equal(w.inkstone.getMode(), 'source');
+    assert.equal(w.inkstone.getViewState().sourceLayout, 'split');
     assert.equal(w.inkstone.setMode('wysiwyg'), true);
     assert.equal(w.inkstone.setMode('nope'), false);
     assert.equal(w.inkstone.getMode(), 'wysiwyg');
     assert.equal(w.inkstone.toggleMode(), 'source');
-    assert.equal(w.inkstone.toggleMode(), 'split');
     assert.equal(w.inkstone.toggleMode(), 'wysiwyg');
 
     const editor = w.document.querySelector('#editor');
     assert.ok(editor.classList.contains('mode-wysiwyg'));
     w.inkstone.setMode('split');
-    assert.ok(editor.classList.contains('mode-split'));
-    assert.ok(!editor.classList.contains('mode-source'));
+    assert.ok(editor.classList.contains('layout-split'));
+    assert.ok(editor.classList.contains('mode-source'));
 
     // No save-status wording may remain in the chrome.
     const chrome = w.document.body.textContent;
@@ -126,7 +126,7 @@ const dom = new JSDOM(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), {
       { level: 2, text: '尾部', line: 5, index: 2 }
     ], 'outline']);
     assert.equal(w.inkstone.scrollToHeading(2), true);
-    assert.equal(scrolled.at(-1).textContent, '尾部');
+    assert.equal(activeCalls.at(-1)[0], 2);
     w.inkstone.setMode('source');
     assert.equal(w.inkstone.scrollToHeading(2), true);
     w.inkstone.setMode('wysiwyg');
@@ -190,6 +190,66 @@ const dom = new JSDOM(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), {
     w.inkstone.loadDocument('', 'empty-real');
     assert.deepEqual(activeCalls.at(-1), [-1, 'empty-real']);
 
+    // Menu actions, replacement history and read-only behavior use the real editors.
+    for (const mode of ['wysiwyg', 'source', 'split']) {
+      w.inkstone.setMode(mode);
+      for (const command of ['ul', 'ol', 'task', 'table', 'hr']) {
+        w.inkstone.loadDocument('菜单正文', 'menu-' + mode + '-' + command);
+        w.inkstone.setSelection(mode === 'wysiwyg' ? 1 : [1, 1], mode === 'wysiwyg' ? 1 : [1, 1]);
+        assert.equal(w.inkstone.format(command), true, mode + ': ' + command);
+        const md = w.inkstone.getMarkdown();
+        if (command === 'table') assert.match(md, /\|/);
+        if (command === 'ul') assert.match(md, /^[*-] /);
+        if (command === 'ol') assert.match(md, /^1\. /);
+        if (command === 'task') assert.match(md, /\[ \]/);
+        if (command === 'hr') assert.match(md, /(?:\*{3}|-{3})/);
+      }
+
+      w.inkstone.loadDocument('**苹果** 和 苹果\n\n苹果', 'search-' + mode);
+      const beforeReplace = w.inkstone.getMarkdown();
+      w.inkstone.setSelection(mode === 'wysiwyg' ? 1 : [1, 1], mode === 'wysiwyg' ? 1 : [1, 1]);
+      assert.equal(w.inkstone.find('苹果', false).count, 3, mode + ': all occurrences');
+      assert.equal(w.inkstone.find('苹果', false).index, 2);
+      assert.equal(w.inkstone.find('苹果', true).index, 1);
+      assert.equal(w.inkstone.replace('苹果', '香蕉', true).replaced, 3);
+      assert.match(w.inkstone.getMarkdown(), /\*\*香蕉\*\*/);
+      assert.ok(!w.inkstone.getMarkdown().includes('苹果'));
+      assert.equal(w.inkstone.format('undo'), true);
+      assert.equal(w.inkstone.getMarkdown(), beforeReplace, mode + ': replace all is a single undo step');
+
+      w.inkstone.setViewOption('readOnly', true);
+      const locked = w.inkstone.getMarkdown();
+      assert.equal(w.inkstone.getViewState().readOnly, true);
+      assert.equal(w.inkstone.format('bold'), false);
+      assert.equal(w.inkstone.insertText('不能插入'), false);
+      w.inkstone.insertImage(image);
+      assert.match(w.inkstone.replace('苹果', '不能替换', true).error, /只读/);
+      assert.equal(w.inkstone.getMarkdown(), locked);
+      assert.equal(w.inkstone.find('苹果', false).count, 3, 'Reading still supports search');
+      const activeEditor = w.document.querySelector('.toastui-editor-md-container .ProseMirror');
+      assert.equal(activeEditor.getAttribute('contenteditable'), 'false');
+      w.inkstone.setViewOption('readOnly', false);
+      assert.equal(activeEditor.getAttribute('contenteditable'), 'true');
+    }
+
+    w.inkstone.setMode('wysiwyg');
+    w.inkstone.loadDocument('x'.repeat(10001), 'search-limit');
+    assert.match(w.inkstone.find('x', false).error, /10000/);
+    assert.match(w.inkstone.replace('x', 'y', true).error, /10000/);
+    assert.equal(w.inkstone.getMarkdown(), 'x'.repeat(10001));
+    w.inkstone.loadDocument('第一段\n\n第二段', 'focus');
+    w.inkstone.setSelection(1, 1);
+    w.inkstone.setViewOption('focus', true);
+    assert.ok(w.document.querySelector('.inkstone-dimmed'), 'Other blocks dim in focus mode');
+    w.inkstone.setViewOption('focus', false);
+    assert.equal(w.document.querySelector('.inkstone-dimmed'), null);
+    w.inkstone.setViewOption('typewriter', true);
+    assert.ok(editor.classList.contains('typewriter'));
+    w.inkstone.setViewOption('readOnly', true);
+    assert.ok(!editor.classList.contains('typewriter'), 'Reading suspends typewriter scrolling');
+    w.inkstone.setViewOption('readOnly', false);
+    w.inkstone.setViewOption('typewriter', false);
+
     // Unsafe HTML from imported Markdown is filtered.
     w.inkstone.loadDocument('<img src="x" onerror="window.__pwned=1"><a href="javascript:window.__pwned=2">bad</a><iframe src="https://example.org"></iframe>');
     assert.equal(w.document.querySelector('#editor [onerror]'), null);
@@ -208,7 +268,7 @@ const dom = new JSDOM(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), {
     assert.equal(bridgeCalls.at(-1)[0], '# Switched');
     assert.ok(changes.length >= 4, 'Native autosave bridge must receive editor contents');
     assert.deepEqual(errors, []);
-    process.stdout.write('PASS: real editor startup, three modes, real rich/source formatting, outline navigation, embedded image roundtrip across modes, sanitizer 3.3.0, unsafe HTML filtering, document isolation.\n');
+    process.stdout.write('PASS: real editors, menu formatting, search/replace with undo, read-only, writing options, outline, image roundtrip, sanitization and document isolation.\n');
     if (notices.length) process.stdout.write('Notices: ' + JSON.stringify(notices) + '\n');
   } finally {
     clearTimeout(timer);

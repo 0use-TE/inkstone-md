@@ -25,7 +25,7 @@ function harness({ deferImages = false, storedMode } = {}) {
   let editor;
   let config;
   const makeElement = () => {
-    const element = { textContent: '', classes: new Set(), addEventListener() {} };
+    const element = { textContent: '', classes: new Set(), addEventListener() {}, setAttribute() {} };
     element.classList = {
       toggle(name, force) {
         if (force === undefined) { if (element.classes.has(name)) element.classes.delete(name); else element.classes.add(name); }
@@ -53,6 +53,13 @@ function harness({ deferImages = false, storedMode } = {}) {
     getSelectedText() { return this.text; }
     setSelection(start, end) { this.selection = [Array.from(start), Array.from(end)]; }
     getSelection() { return this.selection || [[1, 1], [1, 1]]; }
+    replaceSelection(text, start, end) {
+      const position = point => this.text.split('\n').slice(0, point[0] - 1).reduce((sum, line) => sum + line.length + 1, 0) + point[1] - 1;
+      const selection = this.getSelection();
+      const from = position(start || selection[0]), to = position(end || selection[1]);
+      this.text = this.text.slice(0, from) + text + this.text.slice(to);
+      config.events.change();
+    }
     insertText(text) { this.text += text; config.events.change(); }
     exec(command, options) {
       this.executed.push([command, options]);
@@ -76,7 +83,7 @@ function harness({ deferImages = false, storedMode } = {}) {
   };
   const store = new Map();
   const context = {
-    document, InkstoneNative: native, InkstoneUtils: utils, toastui: { Editor },
+    document, TextEncoder, InkstoneNative: native, InkstoneUtils: utils, toastui: { Editor },
     DOMPurify: { sanitize(html, options) { assert.equal(options.SANITIZE_NAMED_PROPS, true); return 'safe:' + html; } },
     localStorage: { getItem(key) { return store.get(key); }, setItem(key, val) { store.set(key, val); } },
     setTimeout(fn) { const id = ++timerId; timers.set(id, fn); return id; },
@@ -84,6 +91,8 @@ function harness({ deferImages = false, storedMode } = {}) {
     FileReader: class { readAsDataURL() { this.result = image; readers.push(this); if (!deferImages) this.onload(); } }
   };
   context.window = context;
+  vm.runInNewContext(fs.readFileSync(path.join(assets, 'writing-tools.js'), 'utf8'), context);
+  vm.runInNewContext(fs.readFileSync(path.join(assets, 'live-preview.js'), 'utf8'), context);
   vm.runInNewContext(fs.readFileSync(path.join(assets, 'app.js'), 'utf8'), context);
   return { api: context.inkstone, events, changes, notices, editor, config, ready, get saves() { return saves; }, elements,
     bridgeCalls, outlines, activeCalls, timers, cancelled, readers, headingNodes, native };
@@ -129,7 +138,7 @@ test('SVG and remote image payloads cannot use native insertion API', () => {
   const h = harness(); h.api.loadDocument('safe'); h.api.insertImage('data:image/svg+xml;base64,AAAA');
   assert.equal(h.api.getMarkdown(), 'safe'); assert.equal(h.notices.length, 1);
 });
-test('Three modes are selectable and toggle cycles through all of them', () => {
+test('Writing and source share one editor, with three source layouts', () => {
   const h = harness(); h.api.loadDocument('text');
   assert.equal(h.api.getMode(), 'wysiwyg');
   assert.equal(h.api.setMode('source'), true);
@@ -139,10 +148,14 @@ test('Three modes are selectable and toggle cycles through all of them', () => {
   assert.equal(h.editor.mode, 'markdown', 'split keeps the live source editor');
   assert.equal(h.editor.previewStyle, 'vertical');
   assert.equal(h.api.setMode('unknown'), false);
-  assert.equal(h.api.getMode(), 'split');
+  assert.equal(h.api.getMode(), 'source');
+  assert.equal(h.api.getViewState().sourceLayout, 'split');
+  assert.equal(h.api.setSourceLayout('preview'), true);
+  assert.equal(h.api.getViewState().sourceLayout, 'preview');
+  assert.equal(h.api.setSourceLayout('invalid'), false);
   assert.equal(h.api.toggleMode(), 'wysiwyg');
   assert.equal(h.api.toggleMode(), 'source');
-  assert.equal(h.api.toggleMode(), 'split');
+  assert.equal(h.api.toggleMode(), 'wysiwyg');
   assert.equal(h.api.getMarkdown(), 'text');
 });
 test('Mode classes drive the source/split layout', () => {
@@ -152,15 +165,13 @@ test('Mode classes drive the source/split layout', () => {
   assert.ok(editor.classList.contains('mode-source'));
   assert.ok(!editor.classList.contains('mode-wysiwyg'));
   h.api.setMode('split');
-  assert.ok(editor.classList.contains('mode-split'));
+  assert.ok(editor.classList.contains('layout-split'));
   h.api.setMode('wysiwyg');
   assert.ok(editor.classList.contains('mode-wysiwyg'));
 });
 test('Paragraph restores plain text by clearing the heading level', () => {
   const h = harness(); h.api.loadDocument('## 标题');
   assert.equal(h.api.format('paragraph'), true);
-  assert.equal(h.editor.executed.at(-1)[0], 'heading', 'Paragraph uses the heading command with level 0');
-  assert.equal(h.editor.executed.at(-1)[1].level, 0);
   assert.equal(h.api.getMarkdown(), '标题');
 });
 test('Format commands apply the requested block and inline styles', () => {
@@ -204,8 +215,7 @@ test('Keyboard shortcuts map to format commands and prevent the browser default 
   assert.equal(h.editor.executed.at(-1)[0], 'heading');
   assert.equal(h.editor.executed.at(-1)[1].level, 2);
   key({ ctrlKey: true, key: '0' });
-  assert.equal(h.editor.executed.at(-1)[0], 'heading');
-  assert.equal(h.editor.executed.at(-1)[1].level, 0);
+  assert.equal(h.api.getMarkdown(), '正文');
   key({ ctrlKey: true, key: 'b' });
   assert.equal(h.editor.executed.at(-1)[0], 'bold');
   key({ ctrlKey: true, key: 'i' });
@@ -319,7 +329,7 @@ test('Outline navigation targets ordered rich headings and source line selection
   const scrolled = [];
   h.headingNodes.push({ scrollIntoView() { scrolled.push(0); } }, { scrollIntoView() { scrolled.push(1); } });
   assert.equal(h.api.scrollToHeading(1), true);
-  assert.deepEqual(scrolled, [1]);
+  assert.deepEqual(h.editor.selection, [[3, 1], [3, 1]]);
   for (const index of [-1, 2, 1.5, '0']) assert.equal(h.api.scrollToHeading(index), false);
   h.api.toggleMode();
   assert.equal(h.api.scrollToHeading(1), true);
@@ -334,7 +344,7 @@ test('Formatting visibility toggles independently of rich/source mode', () => {
   assert.equal(h.api.toggleFormatting(), true);
   assert.equal(h.api.toggleFormatting(), false);
   assert.deepEqual(toggles, [['formatting-visible', true], ['formatting-visible', false]]);
-  assert.equal(h.editor.mode, 'wysiwyg');
+  assert.equal(h.editor.mode, 'markdown');
 });
 test('Active outline heading follows the source cursor and deduplicates unchanged positions', () => {
   const h = harness();

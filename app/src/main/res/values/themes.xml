@@ -1,0 +1,12 @@
+<resources>
+    <item name="theme_background" type="id" />
+    <item name="theme_text" type="id" />
+    <style name="Inkstone.Dialog.Light" parent="android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorAccent">#333333</item>
+        <item name="android:colorBackground">#ffffff</item>
+    </style>
+    <style name="Inkstone.Dialog.Dark" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">#dddddd</item>
+        <item name="android:colorBackground">#262626</item>
+    </style>
+</resources>

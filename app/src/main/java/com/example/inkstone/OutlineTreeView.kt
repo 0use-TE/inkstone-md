@@ -25,8 +25,8 @@ class OutlineTreeView(context: Context) : LinearLayout(context) {
     private var activeIndex = -1
     private var signature: List<OutlineNode> = emptyList()
     private val rows = linkedMapOf<String, TreeRow>()
-    private val ink = Color.rgb(56, 65, 58)
-    private val muted = Color.rgb(136, 143, 134)
+    private val ink get() = AppTheme.color(context, ThemeColor.INK)
+    private val muted get() = AppTheme.color(context, ThemeColor.MUTED)
     init { orientation = VERTICAL; setPadding(dp(4), dp(8), dp(4), dp(16)) }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
@@ -56,6 +56,7 @@ class OutlineTreeView(context: Context) : LinearLayout(context) {
         }
         updateSelection()
     }
+    fun refreshTheme() { removeAllViews(); rows.clear(); render(nodes, collapsed, activeIndex) }
     fun setActive(index: Int) { activeIndex = index; updateSelection() }
     private fun updateSelection() {
         val visibleIndex = OutlineTree.visibleActiveIndex(nodes, collapsed, activeIndex)
@@ -73,10 +74,10 @@ class OutlineTreeView(context: Context) : LinearLayout(context) {
         init {
             isClickable = true; isFocusable = true
             setWillNotDraw(false)
-            foreground = RippleDrawable(ColorStateList.valueOf(0x0F2D503F), null, null)
+            foreground = RippleDrawable(ColorStateList.valueOf((AppTheme.color(context, ThemeColor.ACCENT) and 0x00ffffff) or 0x24000000), null, null)
             val indent = dp(8 + node.depth * 14)
             addView(BranchGuides(node.depth), LayoutParams(indent + dp(22), -1))
-            indicator = View(context).apply { setBackgroundColor(Color.rgb(73, 103, 82)); visibility = INVISIBLE }
+            indicator = View(context).apply { setBackgroundColor(AppTheme.color(context, ThemeColor.ACCENT)); visibility = INVISIBLE }
             addView(indicator, LayoutParams(dp(2), dp(16), Gravity.START or Gravity.CENTER_VERTICAL).apply { leftMargin = dp(1) })
             label = TextView(context).apply {
                 text = node.heading.text.ifBlank { "无标题" }
@@ -117,12 +118,12 @@ class OutlineTreeView(context: Context) : LinearLayout(context) {
             isActivated = value
             // Flat: no filled card, the marker bar and the text colour carry the state.
             indicator.visibility = if (value) VISIBLE else INVISIBLE
-            label.setTextColor(if (value) Color.rgb(45, 84, 60) else ink)
+            label.setTextColor(if (value) AppTheme.color(context, ThemeColor.ACCENT) else ink)
             label.setTypeface(null, if (value || node.depth == 0) Typeface.BOLD else Typeface.NORMAL)
         }
     }
     private inner class BranchGuides(private val depth: Int) : View(this@OutlineTreeView.context) {
-        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(218, 222, 214); strokeWidth = resources.displayMetrics.density * 0.65f }
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AppTheme.color(context, ThemeColor.LINE); strokeWidth = resources.displayMetrics.density * 0.65f }
         override fun onDraw(canvas: Canvas) {
             for (i in 0 until depth) {
                 val x = dp(18 + i * 14).toFloat()
@@ -132,7 +133,7 @@ class OutlineTreeView(context: Context) : LinearLayout(context) {
     }
     private inner class Chevron(private val folded: Boolean) : View(this@OutlineTreeView.context) {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(131, 140, 128); style = Paint.Style.STROKE
+            color = AppTheme.color(context, ThemeColor.MUTED); style = Paint.Style.STROKE
             strokeWidth = resources.displayMetrics.density * 1.25f
             strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
         }

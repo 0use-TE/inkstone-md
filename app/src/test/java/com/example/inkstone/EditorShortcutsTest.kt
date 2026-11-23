@@ -40,6 +40,19 @@ class EditorShortcutsTest {
         assertEquals("open", resolve(KeyEvent.KEYCODE_O)!!.action)
         assertEquals("new", resolve(KeyEvent.KEYCODE_N)!!.action)
     }
+    @Test fun searchAndLinkShortcutsAreAvailableOutsideTheEditor() {
+        assertEquals("find", resolve(KeyEvent.KEYCODE_F)!!.action)
+        assertEquals("replace", resolve(KeyEvent.KEYCODE_H)!!.action)
+        assertEquals("link", resolve(KeyEvent.KEYCODE_K)!!.action)
+        assertNull(resolve(KeyEvent.KEYCODE_F, shift = true))
+        assertNull(resolve(KeyEvent.KEYCODE_H, alt = true))
+    }
+    @Test fun writingOptionsHaveUnmodifiedFunctionKeys() {
+        assertEquals("focusMode", resolve(KeyEvent.KEYCODE_F8, ctrl = false)!!.action)
+        assertEquals("typewriterMode", resolve(KeyEvent.KEYCODE_F9, ctrl = false)!!.action)
+        assertNull(resolve(KeyEvent.KEYCODE_F8))
+        assertNull(resolve(KeyEvent.KEYCODE_F9, ctrl = false, alt = true))
+    }
     @Test fun plainKeysWithoutControlAreIgnored() {
         assertNull(resolve(KeyEvent.KEYCODE_B, ctrl = false))
         assertNull(resolve(KeyEvent.KEYCODE_1, ctrl = false))

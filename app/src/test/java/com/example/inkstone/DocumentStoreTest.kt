@@ -52,6 +52,19 @@ class DocumentStoreTest {
         assertEquals(DocumentStore.digest("before"), changed.savedHash)
         assertEquals(DocumentStore.digest("after"), changed.contentHash)
     }
+    @Test fun reopeningAnExternalUriFindsTheLocalEditsAfterRestart() {
+        val uri = "content://documents/primary%3ADownload%2Fnotes.md"
+        val db = store()
+        val original = "# 文件原文"
+        val doc = db.create(original, "notes.md", uri, DocumentStore.digest(original), false)
+        db.saveDraft(doc.id, "# 尚未导出的本机修改")
+
+        val reopened = store().findByUri(uri)!!
+        assertEquals(doc.id, reopened.id)
+        assertEquals("# 尚未导出的本机修改", store().read(reopened.id))
+        assertEquals(DocumentStore.digest(original), reopened.savedHash)
+        assertNull(store().findByUri("content://documents/another.md"))
+    }
     @Test fun missingMetadataCannotHideDocumentBody() {
         val db = store()
         val doc = db.create("不会丢失的正文")
